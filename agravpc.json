@@ -1,0 +1,689 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "AWS CloudFormation template to create VPC & Subnets with ipv4 & ipv6.",
+    "Metadata": {
+      "AWS::CloudFormation::Interface": {
+        "ParameterGroups": [
+          {
+            "Label": { "default": "VPC Configuration" },
+            "Parameters": [
+              "VPCNAME",
+              "VPCCIDR",
+              "PubELBSubnetAZ2CIDR",
+              "PubELBSubnetAZ3CIDR",
+              "PubWanSubnetAZ2CIDR",
+              "PubWanSubnetAZ3CIDR",
+              "PriLanSubnetAZ2CIDR",
+              "PriLanSubnetAZ3CIDR",
+              "PriHaSubnetAZ2CIDR",
+              "PriHaSubnetAZ3CIDR",
+              "PubMgmtSubnetAZ2CIDR",
+              "PubMgmtSubnetAZ3CIDR",
+              "PriAppSubnetAZ2CIDR",
+              "PriAppSubnetAZ3CIDR",
+              "PriDBSubnetAZ2CIDR",
+              "PriDBSubnetAZ3CIDR",
+              "PriAPP1SubnetAZ2CIDR",
+              "PriAPP2SubnetAZ3CIDR"
+            ]
+          }
+        ]
+      }
+    },
+  
+    "Parameters": {
+      "VPCNAME": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Enter the name for VPC."
+      },
+  
+      "VPCCIDR": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Enter the CidrBlock for VPC."
+      },
+  
+      "PubWanSubnetAZ2CIDR" : {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "Enter the CidrBlock for PUB_WAN_SUBNET_AZ2."
+      },
+  
+      "PubWanSubnetAZ3CIDR" : {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "Enter the CidrBlock for PUB_WAN_SUBNET_AZ3."
+      },
+  
+      "PubMgmtSubnetAZ2CIDR" : {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "Enter the CidrBlock for PUB_MGMT_SUBNET_AZ2."
+      },
+  
+      "PubMgmtSubnetAZ3CIDR" : {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "Enter the CidrBlock for PUB_MGMT_SUBNET_AZ3."
+      },
+  
+      "PriLanSubnetAZ2CIDR" : {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "Enter the CidrBlock for PUB_LAN_SUBNET_AZ2."
+      },
+  
+      "PriLanSubnetAZ3CIDR" : {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "Enter the CidrBlock for PUB_LAN_SUBNET_AZ3."
+      },
+  
+      "PriHaSubnetAZ2CIDR" : {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "Enter the CidrBlock for PUB_HA_SUBNET_AZ2."
+      },
+  
+      "PriHaSubnetAZ3CIDR" : {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "Enter the CidrBlock for PUB_HA_SUBNET_AZ3."
+      },
+  
+      "PubELBSubnetAZ2CIDR": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Enter the CidrBlock for PUB_ELB_SUBNET_AZ1."
+      },
+  
+      "PubELBSubnetAZ3CIDR": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Enter the CidrBlock for PUB_ELB_SUBNET_AZ2."
+      },
+      
+      "PriAppSubnetAZ2CIDR": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Enter the CidrBlock for PRI_APP_SUBNET_AZ1."
+      },
+  
+      "PriAppSubnetAZ3CIDR": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Enter the CidrBlock for PRI_APP_SUBNET_AZ2."
+      },
+      
+      "PriDBSubnetAZ2CIDR": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Enter the CidrBlock for PRI_DB_SUBNET_AZ1."
+      },
+  
+      "PriDBSubnetAZ3CIDR": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Enter the CidrBlock for PRI_DB_SUBNET_AZ2."
+      },
+
+      "PriAPP1SubnetAZ2CIDR": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Enter the CidrBlock for PRI_APP1_SUBNET_AZ2."
+      },
+
+      "PriAPP2SubnetAZ3CIDR": {
+        "Type": "String",
+        "Default": "",
+        "Description": "Enter the CidrBlock for PRI_APP2_SUBNET_AZ3."
+      },
+     
+      "CreateNatGateway": {
+        "AllowedValues": ["true", "false"],
+        "Default": "false",
+        "Description": "Please select true if you want to create Nat Gateway.",
+        "Type": "String"
+      },
+      "CreateIgressOnlyInternetGayeway": {
+        "AllowedValues": ["true", "false"],
+        "Default": "false",
+        "Description": "Please select true if you want to create Ingress Only Internet Gateway.",
+        "Type": "String"
+      }
+    },
+  
+    "Conditions": {
+      "CreateNatGatewayCondition": { "Fn::Equals": [{ "Ref": "CreateNatGateway" }, "true"] },
+      "CreateIgressOnlyInternetGayewayCondition": { "Fn::Equals": [{ "Ref": "CreateIgressOnlyInternetGayeway" }, "true"] }
+    },
+  
+    "Resources": {
+  
+      "myVPC": {
+        "Type": "AWS::EC2::VPC",
+        "Properties": {
+          "CidrBlock": { "Ref": "VPCCIDR" },
+          "EnableDnsSupport": "true",
+          "EnableDnsHostnames": "true",
+          "Tags": [{ "Key": "Name", "Value": { "Ref": "VPCNAME" } }]
+        }
+      },
+  
+      "ipv6CidrBlock": {
+        "Type": "AWS::EC2::VPCCidrBlock",
+        "Properties": { "VpcId": { "Ref": "myVPC" }, "AmazonProvidedIpv6CidrBlock": true }
+      },
+  
+      "MyInternetGateway": {
+        "Type": "AWS::EC2::InternetGateway",
+        "Properties": {
+          "Tags": [{ "Key": "Name", "Value": { "Fn::Join": ["_", [{ "Ref": "VPCNAME" }, "INTERNET_GATEWAY"]] } }]
+        }
+      },
+  
+      "myPublicRouteTable": {
+        "Type": "AWS::EC2::RouteTable",
+        "Properties": { 
+          "VpcId": { 
+            "Ref": "myVPC" 
+          }, 
+          "Tags": [{ "Key": "Name", "Value": { "Fn::Join": ["_", [{ "Ref": "VPCNAME" }, "PUBLIC_RT"]] } }] 
+        }
+      },
+  
+      "myPublicRoute": {
+        "Type": "AWS::EC2::Route",
+        "Properties": {
+          "RouteTableId": { "Ref": "myPublicRouteTable" },
+          "DestinationCidrBlock": "0.0.0.0/0",
+          "GatewayId": { "Ref": "MyInternetGateway" }
+        }
+      },
+  
+      "myPrivateRouteTable": {
+        "Type": "AWS::EC2::RouteTable",
+        "Properties": { 
+          "VpcId": { 
+            "Ref": "myVPC" 
+          }, 
+          "Tags": [{ "Key": "Name", "Value": { "Fn::Join": ["_", [{ "Ref": "VPCNAME" }, "PRIVATE_RT"]] } }] 
+        }
+      },
+  
+      "myVPCGatewayAttachment": {
+        "Type": "AWS::EC2::VPCGatewayAttachment",
+        "Properties": {
+          "VpcId": { "Ref": "myVPC" },
+          "InternetGatewayId": { "Ref": "MyInternetGateway" }
+        }
+      },
+      
+      "PubWanSubnetAZ2": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "myVPC" },
+          "AssignIpv6AddressOnCreation": true,
+          "Ipv6CidrBlock": {
+            "Fn::Join": ["",[{ "Fn::Select": [0, { "Fn::Split": ["00::/56", { "Fn::Select": [0, { "Fn::GetAtt": ["myVPC", "Ipv6CidrBlocks"] }] }] }] },"01::/64"]]
+          },
+          "MapPublicIpOnLaunch": true,
+          "CidrBlock": { "Ref": "PubWanSubnetAZ2CIDR" },
+          "AvailabilityZone": "ap-south-1b",
+          "Tags": [{ "Key": "Name", "Value": "PUB_WAN_SUBNET_AZ2" }]
+        }
+      },
+  
+      "mySubnet1RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "RouteTableId": { "Ref": "myPublicRouteTable" },
+          "SubnetId": { "Ref": "PubWanSubnetAZ2" }
+        }
+      },
+  
+      "PubWanSubnetAZ3": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "myVPC" },
+          "AssignIpv6AddressOnCreation": true,
+          "Ipv6CidrBlock": {
+            "Fn::Join": ["",[{ "Fn::Select": [0, { "Fn::Split": ["00::/56", { "Fn::Select": [0, { "Fn::GetAtt": ["myVPC", "Ipv6CidrBlocks"] }] }] }] },"02::/64"]]
+        },
+          "MapPublicIpOnLaunch": true,
+          "CidrBlock": { "Ref": "PubWanSubnetAZ3CIDR" },
+          "AvailabilityZone": "ap-south-1c",
+          "Tags": [{ "Key": "Name", "Value": "PUB_WAN_SUBNET_AZ3" }]
+        }
+        },
+  
+      "mySubnet2RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "RouteTableId": { "Ref": "myPublicRouteTable" },
+          "SubnetId": { "Ref": "PubWanSubnetAZ3" }
+        }
+      },
+      
+      "PubMgmtSubnetAZ2": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "myVPC" },
+          "AssignIpv6AddressOnCreation": true,
+          "Ipv6CidrBlock": {
+            "Fn::Join": [
+              "",
+              [
+                { "Fn::Select": [0, { "Fn::Split": ["00::/56", { "Fn::Select": [0, { "Fn::GetAtt": ["myVPC", "Ipv6CidrBlocks"] }] }] }] },
+                "03::/64"
+              ]
+            ]
+          },
+          "MapPublicIpOnLaunch": true,
+          "CidrBlock": { "Ref": "PubMgmtSubnetAZ2CIDR" },
+          "AvailabilityZone": "ap-south-1b",
+          "Tags": [{ "Key": "Name", "Value": "PUB_MGMT_SUBNET_AZ2" }]
+        }
+      },
+  
+      "mySubnet3RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "RouteTableId": { "Ref": "myPublicRouteTable" },
+          "SubnetId": { "Ref": "PubMgmtSubnetAZ2" }
+        }
+      },
+      
+      "PubMgmtSubnetAZ3": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "myVPC" },
+          "AssignIpv6AddressOnCreation": true,
+          "Ipv6CidrBlock": {
+            "Fn::Join": [
+              "",
+              [
+                { "Fn::Select": [0, { "Fn::Split": ["00::/56", { "Fn::Select": [0, { "Fn::GetAtt": ["myVPC", "Ipv6CidrBlocks"] }] }] }] },
+                "04::/64"
+              ]
+            ]
+          },
+          "MapPublicIpOnLaunch": true,
+          "CidrBlock": { "Ref": "PubMgmtSubnetAZ3CIDR" },
+          "AvailabilityZone": "ap-south-1c",
+          "Tags": [{ "Key": "Name", "Value": "PUB_MGMT_SUBNET_AZ3" }]
+        }
+      },
+  
+      "mySubnet4RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "RouteTableId": { "Ref": "myPublicRouteTable" },
+          "SubnetId": { "Ref": "PubMgmtSubnetAZ3" }
+        }
+      },
+  
+      "PriLanSubnetAZ2": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "myVPC" },
+          "AssignIpv6AddressOnCreation": true,
+          "Ipv6CidrBlock": {
+            "Fn::Join": [
+              "",
+              [
+                { "Fn::Select": [0, { "Fn::Split": ["00::/56", { "Fn::Select": [0, { "Fn::GetAtt": ["myVPC", "Ipv6CidrBlocks"] }] }] }] },
+                "05::/64"
+              ]
+            ]
+          },
+          "MapPublicIpOnLaunch": false,
+          "CidrBlock": { "Ref": "PriLanSubnetAZ2CIDR" },
+          "AvailabilityZone": "ap-south-1b",
+          "Tags": [{ "Key": "Name", "Value": "PRI_LAN_SUBNET_AZ2" }]
+        }
+      },
+      
+      "mySubnet5RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": { "RouteTableId": { "Ref": "myPrivateRouteTable" }, 
+        "SubnetId": { "Ref": "PriLanSubnetAZ2" } }
+      },
+      
+      "PriLanSubnetAZ3": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "myVPC" },
+          "AssignIpv6AddressOnCreation": true,
+          "Ipv6CidrBlock": {
+            "Fn::Join": [
+              "",
+              [
+                { "Fn::Select": [0, { "Fn::Split": ["00::/56", { "Fn::Select": [0, { "Fn::GetAtt": ["myVPC", "Ipv6CidrBlocks"] }] }] }] },
+                "06::/64"
+              ]
+            ]
+          },
+          "MapPublicIpOnLaunch": false,
+          "CidrBlock": { "Ref": "PriLanSubnetAZ3CIDR" },
+          "AvailabilityZone": "ap-south-1c",
+          "Tags": [{ "Key": "Name", "Value": "PRI_LAN_SUBNET_AZ3" }]
+        }
+      },
+  
+      "mySubnet6RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": { "RouteTableId": { "Ref": "myPrivateRouteTable" }, 
+        "SubnetId": { "Ref": "PriLanSubnetAZ3" } }
+      },
+     
+      "PriHaSubnetAZ2": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "myVPC" },
+          "AssignIpv6AddressOnCreation": true,
+          "Ipv6CidrBlock": {
+            "Fn::Join": [
+              "",
+              [
+                { "Fn::Select": [0, { "Fn::Split": ["00::/56", { "Fn::Select": [0, { "Fn::GetAtt": ["myVPC", "Ipv6CidrBlocks"] }] }] }] },
+                "07::/64"
+              ]
+            ]
+          },
+          "MapPublicIpOnLaunch": false,
+          "CidrBlock": { "Ref": "PriHaSubnetAZ2CIDR" },
+          "AvailabilityZone": "ap-south-1b",
+          "Tags": [{ "Key": "Name", "Value": "PRI_HA_SUBNET_AZ2" }]
+        }
+      },
+  
+      "mySubnet7RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": { "RouteTableId": { "Ref": "myPrivateRouteTable" }, 
+        "SubnetId": { "Ref": "PriHaSubnetAZ2" } }
+      },
+      
+      "PriHaSubnetAZ3": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "myVPC" },
+          "AssignIpv6AddressOnCreation": true,
+          "Ipv6CidrBlock": {
+            "Fn::Join": [
+              "",
+              [
+                { "Fn::Select": [0, { "Fn::Split": ["00::/56", { "Fn::Select": [0, { "Fn::GetAtt": ["myVPC", "Ipv6CidrBlocks"] }] }] }] },
+                "08::/64"
+              ]
+            ]
+          },
+          "MapPublicIpOnLaunch": false,
+          "CidrBlock": { "Ref": "PriHaSubnetAZ3CIDR" },
+          "AvailabilityZone": "ap-south-1c",
+          "Tags": [{ "Key": "Name", "Value": "PRI_HA_SUBNET_AZ3" }]
+        }
+      },
+  
+      "mySubnet8RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": { "RouteTableId": { "Ref": "myPrivateRouteTable" },
+         "SubnetId": { "Ref": "PriHaSubnetAZ3" } }
+      },
+      
+      "PubELBSubnetAZ2": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "myVPC" },
+          "AssignIpv6AddressOnCreation": true,
+          "Ipv6CidrBlock": {
+            "Fn::Join": [
+              "",
+              [
+                { "Fn::Select": [0, { "Fn::Split": ["00::/56", { "Fn::Select": [0, { "Fn::GetAtt": ["myVPC", "Ipv6CidrBlocks"] }] }] }] },
+                "09::/64"
+              ]
+            ]
+          },
+          "MapPublicIpOnLaunch": true,
+          "CidrBlock": { "Ref": "PubELBSubnetAZ2CIDR" },
+          "AvailabilityZone": "ap-south-1b",
+          "Tags": [{ "Key": "Name", "Value": "PUB_ELB_SUBNET_AZ2" }]
+        }
+      },
+  
+      "mySubnet9RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "RouteTableId": { "Ref": "myPublicRouteTable" },
+          "SubnetId": { "Ref": "PubELBSubnetAZ2" }
+        }
+      },
+      
+      "PubELBSubnetAZ3": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "myVPC" },
+          "AssignIpv6AddressOnCreation": true,
+          "Ipv6CidrBlock": {
+            "Fn::Join": [
+              "",
+              [
+                { "Fn::Select": [0, { "Fn::Split": ["00::/56", { "Fn::Select": [0, { "Fn::GetAtt": ["myVPC", "Ipv6CidrBlocks"] }] }] }] },
+                "0a::/64"
+              ]
+            ]
+          },
+          "MapPublicIpOnLaunch": true,
+          "CidrBlock": { "Ref": "PubELBSubnetAZ3CIDR" },
+          "AvailabilityZone": "ap-south-1c",
+          "Tags": [{ "Key": "Name", "Value": "PUB_ELB_SUBNET_AZ3" }]
+        }
+      },
+  
+      "mySubnet10RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "RouteTableId": { "Ref": "myPublicRouteTable" },
+          "SubnetId": { "Ref": "PubELBSubnetAZ3" }
+        }
+      },
+      
+      "PriAppSubnetAZ2": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "myVPC" },
+          "AssignIpv6AddressOnCreation": true,
+          "Ipv6CidrBlock": {
+            "Fn::Join": [
+              "",
+              [
+                { "Fn::Select": [0, { "Fn::Split": ["00::/56", { "Fn::Select": [0, { "Fn::GetAtt": ["myVPC", "Ipv6CidrBlocks"] }] }] }] },
+                "0b::/64"
+              ]
+            ]
+          },
+          "MapPublicIpOnLaunch": false,
+          "CidrBlock": { "Ref": "PriAppSubnetAZ2CIDR" },
+          "AvailabilityZone": "ap-south-1b",
+          "Tags": [{ "Key": "Name", "Value": "PRI_APP_SUBNET_AZ2" }]
+        }
+      },
+  
+      "mySubnet11RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": { "RouteTableId": { "Ref": "myPrivateRouteTable" }, 
+        "SubnetId": { "Ref": "PriAppSubnetAZ2" } }
+      },
+      
+      "PriAppSubnetAZ3": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "myVPC" },
+          "AssignIpv6AddressOnCreation": true,
+          "Ipv6CidrBlock": {
+            "Fn::Join": [
+              "",
+              [
+                { "Fn::Select": [0, { "Fn::Split": ["00::/56", { "Fn::Select": [0, { "Fn::GetAtt": ["myVPC", "Ipv6CidrBlocks"] }] }] }] },
+                "0c::/64"
+              ]
+            ]
+          },
+          "MapPublicIpOnLaunch": false,
+          "CidrBlock": { "Ref": "PriAppSubnetAZ3CIDR" },
+          "AvailabilityZone": "ap-south-1c",
+          "Tags": [{ "Key": "Name", "Value": "PRI_APP_SUBNET_AZ3" }]
+        }
+      },
+  
+      "mySubnet12RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": { "RouteTableId": { "Ref": "myPrivateRouteTable" }, 
+        "SubnetId": { "Ref": "PriAppSubnetAZ3" } }
+      },
+      
+      "PriDBSubnetAZ2": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "myVPC" },
+          "AssignIpv6AddressOnCreation": true,
+          "Ipv6CidrBlock": {
+            "Fn::Join": [
+              "",
+              [
+                { "Fn::Select": [0, { "Fn::Split": ["00::/56", { "Fn::Select": [0, { "Fn::GetAtt": ["myVPC", "Ipv6CidrBlocks"] }] }] }] },
+                "0d::/64"
+              ]
+            ]
+          },
+          "MapPublicIpOnLaunch": false,
+          "CidrBlock": { "Ref": "PriDBSubnetAZ2CIDR" },
+          "AvailabilityZone": "ap-south-1b",
+          "Tags": [{ "Key": "Name", "Value": "PRI_DB_SUBNET_AZ2" }]
+        }
+      },
+  
+      "mySubnet13RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": { "RouteTableId": { "Ref": "myPrivateRouteTable" }, 
+        "SubnetId": { "Ref": "PriDBSubnetAZ2" } }
+      },
+      
+      "PriDBSubnetAZ3": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "myVPC" },
+          "AssignIpv6AddressOnCreation": true,
+          "Ipv6CidrBlock": {
+            "Fn::Join": [
+              "",
+              [
+                { "Fn::Select": [0, { "Fn::Split": ["00::/56", { "Fn::Select": [0, { "Fn::GetAtt": ["myVPC", "Ipv6CidrBlocks"] }] }] }] },
+                "0e::/64"
+              ]
+            ]
+          },
+          "MapPublicIpOnLaunch": false,
+          "CidrBlock": { "Ref": "PriDBSubnetAZ3CIDR" },
+          "AvailabilityZone": "ap-south-1c",
+          "Tags": [{ "Key": "Name", "Value": "PRI_DB_SUBNET_AZ3" }]
+        }
+      },
+
+      "mySubnet14RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": { "RouteTableId": { "Ref": "myPrivateRouteTable" },
+         "SubnetId": { "Ref": "PriDBSubnetAZ3" } }
+      },
+
+      "PriAPP1SubnetAZ2": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "myVPC" },
+          "AssignIpv6AddressOnCreation": true,
+          "Ipv6CidrBlock": {
+            "Fn::Join": [
+              "",
+              [
+                { "Fn::Select": [0, { "Fn::Split": ["00::/56", { "Fn::Select": [0, { "Fn::GetAtt": ["myVPC", "Ipv6CidrBlocks"] }] }] }] },
+                "0e::/64"
+              ]
+            ]
+          },
+          "MapPublicIpOnLaunch": false,
+          "CidrBlock": { "Ref": "PriAPP1SubnetAZ2CIDR" },
+          "AvailabilityZone": "ap-south-1b",
+          "Tags": [{ "Key": "Name", "Value": "PRI_APP1_SUBNET_AZ2" }]
+        }
+      },
+
+      "mySubnet15RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": { "RouteTableId": { "Ref": "myPrivateRouteTable" },
+         "SubnetId": { "Ref": "PriAPP1SubnetAZ2" } }
+      },
+
+      "PriAPP2SubnetAZ3": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "myVPC" },
+          "AssignIpv6AddressOnCreation": true,
+          "Ipv6CidrBlock": {
+            "Fn::Join": [
+              "",
+              [
+                { "Fn::Select": [0, { "Fn::Split": ["00::/56", { "Fn::Select": [0, { "Fn::GetAtt": ["myVPC", "Ipv6CidrBlocks"] }] }] }] },
+                "0e::/64"
+              ]
+            ]
+          },
+          "MapPublicIpOnLaunch": false,
+          "CidrBlock": { "Ref": "PriAPP2SubnetAZ3CIDR" },
+          "AvailabilityZone": "ap-south-1c",
+          "Tags": [{ "Key": "Name", "Value": "PRI_APP2_SUBNET_AZ3" }]
+        }
+      },
+
+      "mySubnet16RouteTableAssociation": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": { "RouteTableId": { "Ref": "myPrivateRouteTable" },
+         "SubnetId": { "Ref": "PriAPP2SubnetAZ3" } }
+      },
+  
+      
+      
+      "NATGatewayEIP": { 
+        "Type": "AWS::EC2::EIP", 
+        "Condition": "CreateNatGatewayCondition", 
+        "Properties": { 
+          "Domain": "vpc",
+          "Tags": [{ "Key": "Name", "Value": { "Fn::Join": ["_", [{ "Ref": "VPCNAME" }, "NATGateway-EIP"]] } }] 
+          } 
+      },
+  
+      "myNatGateway1": {
+        "Type": "AWS::EC2::NatGateway",
+        "Condition": "CreateNatGatewayCondition",
+        "Properties": {
+          "AllocationId": { "Fn::GetAtt": ["NATGatewayEIP", "AllocationId"] },
+          "SubnetId": { "Ref": "PubELBSubnetAZ2" },
+          "Tags": [{ "Key": "Name", "Value": { "Fn::Join": ["_", [{ "Ref": "VPCNAME" }, "NAT_GATEWAY"]] } }]
+  
+        }
+        
+      },
+  
+      "RouteNATGateway": {
+        "Type": "AWS::EC2::Route",
+        "Condition": "CreateNatGatewayCondition", 
+        "Properties": {
+          "RouteTableId": { "Ref": "myPrivateRouteTable" },
+          "DestinationCidrBlock": "0.0.0.0/0",
+          "NatGatewayId": { "Ref": "myNatGateway1" }
+        }
+      }
+    }
+  }
+  
